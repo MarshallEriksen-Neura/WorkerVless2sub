@@ -1,0 +1,12 @@
+# Local CloudflareSpeedTest runtime artifacts
+cfst
+cfst.exe
+cfst_*.zip
+cfst_*.tar.gz
+cfst_3proxy.bat
+cfst_hosts.bat
+ip.txt
+ipv6.txt
+result_raw.csv
+使用+错误+反馈说明.txt
+cfst_push.log
