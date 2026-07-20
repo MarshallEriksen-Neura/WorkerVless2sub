@@ -78,7 +78,7 @@ fi
 
 # ---- 3. 跑测速（延迟 + 下载速度）----
 echo "== 运行测速（延迟+速度，约 1-2 分钟）=="
-"$CFST_BIN" -o result_raw.csv -tl 200 -dn 20 -sl 0.00
+"$CFST_BIN" -o result_raw.csv -tl 200 -dn 20 -sl 0.00 -p 0
 
 # ---- 4. 转换 CFST 原生输出 → ADDCSV 5 列格式 ----
 # CFST 输出：IP地址,已发送,已接收,丢包率,平均延迟,下载速度(MB/s),地区码
