@@ -44,16 +44,39 @@ git pull --ff-only
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 case "$ARCH" in x86_64|amd64) A=amd64;; arm64|aarch64) A=arm64;; *) echo "不支持的架构: $ARCH"; exit 1;; esac
-case "$OS" in linux) P=linux;; darwin) P=darwin;; *) echo "不支持的系统: $OS"; exit 1;; esac
-F="cfst_${P}_${A}.tar.gz"
+case "$OS" in
+  linux*) P=linux;;
+  darwin*) P=darwin;;
+  mingw*|msys*|cygwin*) P=windows;;
+  *) echo "不支持的系统: $OS"; exit 1;;
+esac
+if [ "$P" = windows ]; then
+  F="cfst_${P}_${A}.zip"
+  CFST_BIN=./cfst.exe
+else
+  F="cfst_${P}_${A}.tar.gz"
+  CFST_BIN=./cfst
+fi
 echo "== 下载 $F =="
-wget -N "https://github.com/XIU2/CloudflareSpeedTest/releases/latest/download/$F"
-tar -zxf "$F"
-chmod +x cfst
+URL="https://github.com/XIU2/CloudflareSpeedTest/releases/latest/download/$F"
+if command -v curl >/dev/null 2>&1; then
+  curl -fL --retry 3 -o "$F" "$URL"
+elif command -v wget >/dev/null 2>&1; then
+  wget -O "$F" "$URL"
+else
+  echo "缺少下载工具：需要 curl 或 wget"
+  exit 1
+fi
+if [ "$P" = windows ]; then
+  unzip -o "$F"
+else
+  tar -zxf "$F"
+  chmod +x cfst
+fi
 
 # ---- 3. 跑测速（延迟 + 下载速度）----
 echo "== 运行测速（延迟+速度，约 1-2 分钟）=="
-./cfst -o result_raw.csv -tl 200 -dn 20 -sl 0.00
+"$CFST_BIN" -o result_raw.csv -tl 200 -dn 20 -sl 0.00
 
 # ---- 4. 转换 CFST 原生输出 → ADDCSV 5 列格式 ----
 # CFST 输出：IP地址,已发送,已接收,丢包率,平均延迟,下载速度(MB/s),地区码
