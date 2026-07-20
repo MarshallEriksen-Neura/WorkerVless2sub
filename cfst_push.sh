@@ -59,7 +59,9 @@ else
 fi
 echo "== 下载 $F =="
 URL="https://github.com/XIU2/CloudflareSpeedTest/releases/latest/download/$F"
-if command -v curl >/dev/null 2>&1; then
+if command -v gh >/dev/null 2>&1 && gh release download --repo XIU2/CloudflareSpeedTest --pattern "$F" --clobber; then
+  :
+elif command -v curl >/dev/null 2>&1; then
   curl -fL --connect-timeout 20 --retry 5 --retry-all-errors --retry-delay 2 -o "$F" "$URL"
 elif command -v wget >/dev/null 2>&1; then
   wget -O "$F" "$URL"
