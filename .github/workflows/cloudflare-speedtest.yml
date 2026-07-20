@@ -1,54 +1,46 @@
-name: Cloudflare Speed Test + 更新订阅
+name: Cloudflare 优选 IP 订阅维护
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # 每天凌晨0点跑；想每6小时改 '0 */6 * * *'
+    - cron: '0 0 * * *'   # 每天凌晨0点 UTC 跑；想每6小时改 '0 */6 * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  speedtest:
+  maintain:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: 下载 CloudflareSpeedTest (cfst)
+      - name: 刷新测速结果（仅在 runner 能拿到有效速度时更新 result.csv）
         run: |
           # 注意：新版文件名已从 CloudflareST_linux_amd64.tar.gz 改为 cfst_linux_amd64.tar.gz
           wget -N https://github.com/XIU2/CloudflareSpeedTest/releases/latest/download/cfst_linux_amd64.tar.gz
           tar -zxf cfst_linux_amd64.tar.gz
           chmod +x cfst
 
-      - name: 运行测速（延迟+速度，输出 result.csv）
-        run: |
-          # 不使用 -dd（否则禁用下载测速，速度列为空，DLS 过滤失效）
-          # -tl 200  -> 平均延迟上限 200ms（过滤高延迟）
-          # -dn 20   -> 下载测速 20 个（够快就停）
-          # -sl 0.00 -> 不设下载速度下限，先测出速度再交给 worker 的 DLS 过滤
-          ./cfst -o result.csv -tl 200 -dn 20 -sl 0.00
+          # 仅测延迟（GitHub Actions 出口对 CF 下载测速地址常返回 0.00，速度不可靠）
+          # 所以用 -dd 只测延迟，结果按延迟排序；真正的“速度优选”在你本机跑 CFST 覆盖 result.csv
+          ./cfst -o result.csv -dd -tl 200 -dn 20 || true
 
-      - name: 转换为 WorkerVless2sub ADDCSV 所需格式
-        run: |
-          # Worker 解析要求（见 _worker.js 整理测速结果）：
-          #   第0列=IP, 第1列=端口, 必须有 TLS 列(写 TRUE), TLS后偏移1列=数据中心, 末列=下载速度(MB/s)
-          # CFST 原生输出: IP地址,已发送,已接收,丢包率,平均延迟,下载速度(MB/s),地区码
+          # 转换为 WorkerVless2sub ADDCSV 所需格式
+          # 要求（见 _worker.js 整理测速结果）：第0列=IP, 第1列=端口, 有 TLS 列(写 TRUE),
+          #       TLS后偏移1列=数据中心, 末列=下载速度(MB/s)
+          # 注意：Actions 测不出速度，这里速度列填 0（交给 worker 的 DLS 不会全过滤掉延迟优选 IP）
           awk -F',' 'NR==1 { next }
           {
-            ip=$1; port="443"; tls="TRUE"; speed=$6; region=$7;
-            if (speed+0 == 0) next;            # 跳过速度为 0 的 IP
+            ip=$1; port="443"; tls="TRUE"; region=$7; speed="0";
+            if (ip == "") next;
             printf "%s,%s,%s,%s,%s\n", ip, port, tls, region, speed;
           }' result.csv > result.addcsv.csv
 
-          # 写带表头的合规 CSV
           { echo "IP地址,端口,TLS,数据中心,下载速度(MB/s)"; cat result.addcsv.csv; } > result.csv
-          echo "=== 生成的 result.csv 前 5 行 ==="
-          head -5 result.csv
-          echo "=== 有效 IP 数量 ==="
-          expr $(wc -l < result.csv) - 1
+          echo "=== result.csv 行数（含表头）==="
+          wc -l < result.csv
 
-      - name: 提交 result.csv（raw 自动更新）
+      - name: 提交 result.csv（raw 自动更新；本机可随时覆盖）
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -56,6 +48,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "无变化，跳过提交"
           else
-            git commit -m "Update CloudflareSpeedTest result.csv"
+            git commit -m "Refresh CloudflareSpeedTest result.csv (latency-only on Actions)"
             git push
           fi
