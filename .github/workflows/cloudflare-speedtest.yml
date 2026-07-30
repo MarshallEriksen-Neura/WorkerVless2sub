@@ -18,7 +18,7 @@ jobs:
         run: |
           # 注意：新版文件名已从 CloudflareST_linux_amd64.tar.gz 改为 cfst_linux_amd64.tar.gz
           wget -N https://github.com/XIU2/CloudflareSpeedTest/releases/latest/download/cfst_linux_amd64.tar.gz
-          tar -zxf cfst_linux_amd64.tar.gz
+          tar -zxf cfst_linux_amd64.tar.gz --strip-components=1 cfst_linux_amd64/cfst
           chmod +x cfst
 
           # 仅测延迟（GitHub Actions 出口对 CF 下载测速地址常返回 0.00，速度不可靠）

@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$repo = 'C:\Users\timeline\WorkerVless2sub'
+$repo = $PSScriptRoot
 $bash = 'C:\Program Files\Git\bin\bash.exe'
 $log = Join-Path $repo 'cfst_push.log'
 
@@ -8,7 +8,7 @@ if (-not (Test-Path -LiteralPath $bash)) {
     throw "Git Bash not found: $bash"
 }
 
-$env:CFST_WORKDIR = '/c/Users/timeline'
+$env:CFST_WORKDIR = '/d'
 $env:HOME = '/c/Users/timeline'
 
 $gh = 'C:\Program Files\GitHub CLI\gh.exe'
@@ -29,7 +29,7 @@ $env:GIT_CONFIG_VALUE_0 = "AUTHORIZATION: basic $basic"
 
 Push-Location $repo
 try {
-    & $bash --noprofile --norc -lc 'exec /c/Users/timeline/WorkerVless2sub/cfst_push.sh' *>> $log
+    & $bash --noprofile --norc -lc 'exec /d/WorkerVless2sub/cfst_push.sh' *>> $log
     $code = $LASTEXITCODE
 }
 finally {

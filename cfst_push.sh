@@ -72,7 +72,7 @@ fi
 if [ "$P" = windows ]; then
   unzip -o "$F"
 else
-  tar -zxf "$F"
+  tar -zxf "$F" --strip-components=1 "cfst_${P}_${A}/cfst"
   chmod +x cfst
 fi
 
